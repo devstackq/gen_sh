@@ -2,23 +2,22 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
-	"os"
-
 	_ "github.com/lib/pq"
+	"log"
 )
 
-var DB *sql.DB
-
-func InitDB() error {
-	connStr := os.Getenv("DATABASE_URL")
+func ConnectDB() (*sql.DB, error) {
+	connStr := "postgres://user:password@localhost/dbname?sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return err
+		log.Fatal("Failed to connect to DB:", err)
+		return nil, err
 	}
 
-	DB = db
-	log.Println("✅ БД подключена")
-	return nil
+	if err := db.Ping(); err != nil {
+		log.Fatal("Failed to ping DB:", err)
+		return nil, err
+	}
+
+	return db, nil
 }

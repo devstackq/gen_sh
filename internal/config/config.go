@@ -13,7 +13,7 @@ type Config struct {
 var Cfg Config
 
 func InitConfig() {
-	viper.SetConfigName("config")
+	viper.SetConfigName("helpers")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 

@@ -7,46 +7,68 @@ import (
 
 	"github.com/devstackq/gen_sh/internal/database"
 	"github.com/devstackq/gen_sh/internal/upload"
+	"github.com/devstackq/gen_sh/internal/video/service"
 	"github.com/devstackq/gen_sh/pkg/logger"
 )
 
 func main() {
+	// Инициализация логирования
 	logger.InitLogger()
 	defer logger.Log.Sync()
 
-	if err := database.InitDB(); err != nil {
+	// Путь к credentials для YouTube
+	credentialsFile := "credentials.json"
+
+	// Инициализация загрузчика YouTube
+	ytUploader, err := upload.NewYouTubeUploader(credentialsFile)
+	if err != nil {
+		log.Fatalf("Ошибка инициализации YouTube uploader: %v", err)
+	}
+	//todo future upload tikTok
+
+	// Подключение к базе данных
+	dbConn, err := database.ConnectDB()
+	if err != nil {
 		log.Fatal("Ошибка подключения к БД:", err)
 	}
 
-	fmt.Println("🚀 Запуск загрузчика видео...")
+	// Создание сервиса для видео
+	videoService := service.NewVideoService(dbConn)
 
-	rows, err := database.DB.Query("SELECT id, path FROM videos WHERE uploaded = false")
+	// Получение видео, которые не были загружены
+	videos, err := videoService.GetUnuploadedVideos()
 	if err != nil {
 		log.Fatal("Ошибка получения видео из БД:", err)
 	}
-	defer rows.Close()
+
+	// Запуск параллельной загрузки видео на YouTube
+	fmt.Println("🚀 Запуск загрузчика видео...")
 
 	var wg sync.WaitGroup
-
-	for rows.Next() {
-		var id int
-		var videoPath string
-		err := rows.Scan(&id, &videoPath)
-		if err != nil {
-			log.Println("Ошибка чтения строки:", err)
-			continue
-		}
-
+	for _, videoRecord := range videos {
 		wg.Add(1)
-		go func(id int, videoPath string) {
+		go func(videoRecord service.Video) {
 			defer wg.Done()
-			err := upload.UploadToYouTube(videoPath)
-			if err == nil {
-				database.DB.Exec("UPDATE videos SET uploaded = true WHERE id = $1", id)
+
+			// Загрузка видео на YouTube
+			err := ytUploader.Upload(videoRecord.Path)
+			if err != nil {
+				log.Printf("Ошибка загрузки видео %s: %v", videoRecord.Path, err)
+				return
 			}
-		}(id, videoPath)
+
+			// Обновление статуса загрузки видео в базе данных
+			err = videoService.MarkVideoAsUploaded(videoRecord.ID)
+			if err != nil {
+				log.Printf("Ошибка обновления статуса видео в БД: %v", err)
+			} else {
+				log.Printf("Видео %s успешно загружено на YouTube", videoRecord.Path)
+			}
+		}(videoRecord)
 	}
 
+	// Ожидаем завершения всех горутин
 	wg.Wait()
+
 	fmt.Println("✅ Все видео загружены!")
 }
