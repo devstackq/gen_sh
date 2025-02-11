@@ -1,25 +1,42 @@
 package config
 
 import (
-	"log"
-
-	"github.com/spf13/viper"
+	"fmt"
+	"gopkg.in/yaml.v2"
+	"os"
 )
 
-type Config struct {
-	DatabaseURL string
+type Platform struct {
+	Name        string `yaml:"name"`
+	Credentials string `yaml:"credentials"`
+	APIKey      string `yaml:"api_key"`
+	UploadPath  string `yaml:"upload_path"`
 }
 
-var Cfg Config
+type User struct {
+	Email     string     `yaml:"email"`
+	Theme     string     `yaml:"theme"`
+	Platforms []Platform `yaml:"platforms"`
+}
 
-func InitConfig() {
-	viper.SetConfigName("helpers")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
+type Config struct {
+	Users []User `yaml:"users"`
+}
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Ошибка чтения конфигурации: %v", err)
+// LoadConfig загружает конфигурацию из YAML файла
+func LoadConfig(configFile string) (*Config, error) {
+	file, err := os.Open(configFile)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось открыть конфигурационный файл: %v", err)
+	}
+	defer file.Close()
+
+	var config Config
+	decoder := yaml.NewDecoder(file)
+	err = decoder.Decode(&config)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось прочитать конфигурацию: %v", err)
 	}
 
-	Cfg.DatabaseURL = viper.GetString("database.url")
+	return &config, nil
 }

@@ -1,0 +1,21 @@
+database:
+  url: "postgres://user:password@localhost:5432/video_gen?sslmode=disable"
+users:
+  - email: user1@mail.com
+    theme: "Новости"
+    platforms:
+      - name: "YouTube"
+        credentials: "youtube_credentials.json"
+        api_key: "youtube_api_key"
+        upload_path: "/videos/youtube/"
+      - name: "TikTok"
+        credentials: "tiktok_credentials.json"
+        api_key: "tiktok_api_key"
+        upload_path: "/videos/tiktok/"
+  - email: user2@mail.com
+    theme: "Загадки"
+    platforms:
+      - name: "YouTube"
+        credentials: "youtube_credentials.json"
+        api_key: "youtube_api_key"
+        upload_path: "/videos/youtube/"

@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"sync"
 
+	"github.com/devstackq/gen_sh/internal/config"
 	"github.com/devstackq/gen_sh/internal/cron"
 	"github.com/devstackq/gen_sh/pkg/logger"
 )
@@ -17,20 +15,16 @@ func main() {
 	logger.InitLogger()
 	defer logger.Log.Sync()
 
-	// Канал для обработки сигналов (SIGTERM, SIGINT)
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	// Загрузка конфигурации из файла
+	configFile := "config.yaml"
+	cfg, err := config.LoadConfig(configFile)
+	if err != nil {
+		log.Fatalf("Ошибка загрузки конфигурации: %v", err)
+	}
 
-	// Запуск cron задач для генерации и загрузки видео
-	go cron.StartCronJob()
+	// Запуск cron задач
+	go cron.StartCronJob(cfg)
 
-	// Ожидаем сигнала завершения
-	sigReceived := <-sigChan
-	fmt.Printf("Получен сигнал: %v. Инициируем graceful shutdown...\n", sigReceived)
-
-	// Завершаем работу приложения (позволяя горутинам завершиться)
-	// Добавьте здесь любую логику для очистки или завершения работы
-	time.Sleep(2 * time.Second)
-
-	fmt.Println("✅ Приложение завершено.")
+	// Ожидаем завершения всех cron задач
+	select {}
 }
