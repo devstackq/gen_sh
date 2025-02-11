@@ -17,6 +17,7 @@ type Platform struct {
 type User struct {
 	Email     string     `yaml:"email"`
 	Theme     string     `yaml:"theme"`
+	Sources   []string   `yaml:"sources"`
 	Platforms []Platform `yaml:"platforms"`
 }
 

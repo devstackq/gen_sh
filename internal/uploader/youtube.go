@@ -80,16 +80,18 @@ func (u *ytService) Upload(videoPath, title, description string, tags []string) 
 	defer file.Close()
 
 	// Создаем запрос на загрузку
-	call := u.client.Videos.Insert([]string{"snippet", "status"}, &youtube.Video{
-		Snippet: &youtube.VideoSnippet{
-			Title:       title,
-			Description: description,
-			Tags:        tags,
-		},
-		Status: &youtube.VideoStatus{
-			PrivacyStatus: "public",
-		},
-	})
+	call := u.client.Videos.Insert(
+		[]string{"snippet", "status"},
+		&youtube.Video{
+			Snippet: &youtube.VideoSnippet{
+				Title:       title,
+				Description: description,
+				Tags:        tags,
+			},
+			Status: &youtube.VideoStatus{
+				PrivacyStatus: "public",
+			},
+		})
 
 	call = call.Media(file)
 

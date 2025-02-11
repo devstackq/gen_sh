@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/devstackq/gen_sh/internal/config"
+	"github.com/devstackq/gen_sh/internal/content"
 	"github.com/devstackq/gen_sh/internal/logger"
 	"github.com/devstackq/gen_sh/internal/speech"
 	"github.com/devstackq/gen_sh/internal/uploader"
@@ -18,21 +19,18 @@ type Video struct {
 	uploader uploader.PlatformClient
 }
 
-// GenerateAndPublishForUser генерирует и публикует видео для пользователя
-func GenerateAndPublishForUser(user config.User) error {
+func Publish(user config.User, content []content.Content) error {
 
 	logger.LogInfo(fmt.Sprint("Начата обработка пользователя", "email", user.Email, "theme", user.Theme))
 	// Генерация аудио
-	audioPath, err := GenerateAudioForText(user.Theme)
+	audioPath, err := GenerateAudioForText(content[0].Excerpt) //todo mb use 1 content?
 	if err != nil {
-		logger.LogError(fmt.Sprint("Ошибка генерации аудио", "theme", user.Theme, "error", err))
 		return err
 	}
 
 	// Генерация видео
-	videoPath, err := GenerateVideo(user.Theme, audioPath)
+	videoPath, err := GenerateVideo(content[0].Excerpt, audioPath)
 	if err != nil {
-		logger.LogError(fmt.Sprint("Ошибка генерации видео", "theme", user.Theme, "error", err))
 		return err
 	}
 
@@ -61,7 +59,7 @@ func GenerateAndPublishForUser(user config.User) error {
 				return
 			}
 
-			if err = client.Upload(videoPath, "title", "description", []string{"tags"}); err != nil {
+			if err = client.Upload(videoPath, content[0].Title, content[0].Excerpt, []string{"tags"}); err != nil {
 				logger.LogError(fmt.Sprintf("Ошибка публикации на платформе %s: %v", platform.Name, err))
 			}
 		}(platform)
@@ -113,7 +111,6 @@ func generateTextVideo(text string) (string, error) {
 func GenerateAudioForText(text string) (string, error) {
 	audioPath, err := speech.GenerateAudio(text)
 	if err != nil {
-		logger.LogError(fmt.Sprint("Ошибка генерации аудио", "text", text, "error", err))
 		return "", err
 	}
 	return audioPath, nil

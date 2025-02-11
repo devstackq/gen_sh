@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/devstackq/gen_sh/internal/config"
+	"github.com/devstackq/gen_sh/internal/content"
 	"github.com/devstackq/gen_sh/internal/video"
 	"github.com/robfig/cron/v3"
 )
@@ -19,13 +20,21 @@ func StartCronJob(cfg *config.Config) {
 	_, err := c.AddFunc("0 1 * * *", func() { // todo - flexible cron
 
 		fmt.Println("🚀 Запуск задачи по генерации видео...")
+
 		// Генерация и публикация для каждого пользователя
 		var wg sync.WaitGroup
 		for _, user := range cfg.Users {
 			wg.Add(1)
 			go func(user config.User) {
 				defer wg.Done()
-				if err := video.GenerateAndPublishForUser(user); err != nil {
+				items, err := content.FetchContent(user.Theme, user.Sources)
+				if err != nil {
+					log.Fatalf("Ошибка получения контента: %v", err)
+				}
+				if len(items) == 0 {
+					log.Printf("content items equal 0")
+				}
+				if err = video.Publish(user, items); err != nil {
 					log.Printf("Ошибка при генерации и публикации видео для пользователя %s: %v", user.Email, err)
 				}
 			}(user)

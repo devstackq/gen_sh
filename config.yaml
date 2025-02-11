@@ -2,7 +2,9 @@ database:
   url: "postgres://user:password@localhost:5432/video_gen?sslmode=disable"
 users:
   - email: user1@mail.com
-    theme: "Новости"
+    theme: "News"
+    sources:
+      - twitter
     platforms:
       - name: "YouTube"
         credentials: "youtube_credentials.json"
@@ -14,6 +16,8 @@ users:
         upload_path: "/videos/tiktok/"
   - email: user2@mail.com
     theme: "Загадки"
+    sources:
+      - reddit
     platforms:
       - name: "YouTube"
         credentials: "youtube_credentials.json"
