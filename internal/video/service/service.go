@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/devstackq/gen_sh/internal/video/model"
-	"github.com/devstackq/gen_sh/internal/video/repository"
+	"github.com/devstackq/gen_sh/internal/video/repo"
 )
 
 type VideoService interface {
@@ -12,10 +12,10 @@ type VideoService interface {
 }
 
 type videoService struct {
-	repo repository.VideoRepository
+	repo repo.VideoRepository
 }
 
-func NewVideoService(repo repository.VideoRepository) VideoService {
+func NewVideoService(repo repo.VideoRepository) VideoService {
 	return &videoService{repo: repo}
 }
 
