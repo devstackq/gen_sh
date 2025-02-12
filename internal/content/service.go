@@ -25,15 +25,14 @@ func FetchContent(theme string, sources []string) ([]Content, error) {
 	var allItems []Content
 
 	for _, src := range sources {
-		fmt.Println(src, theme)
 		fetcher, err := NewContentFetcher(src)
 		if err != nil {
-			logger.LogInfo(fmt.Sprint("NewContentFetcher", err))
+			logger.LogInfo(fmt.Sprint("NewContentFetcher error", err))
 			continue
 		}
 		items, err := fetcher.Fetch(theme)
 		if err != nil {
-			logger.LogInfo(fmt.Sprint("Fetch", err))
+			logger.LogInfo(fmt.Sprint("Fetch error", err))
 			continue
 		}
 		allItems = append(allItems, items...)

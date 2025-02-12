@@ -10,8 +10,8 @@ import (
 	"github.com/devstackq/gen_sh/internal/logger"
 )
 
-// GenerateAudio - генерирует аудиофайл на основе текста с помощью Google TTS или espeak.
-func GenerateAudio(text string) (string, error) {
+// Generate - генерирует аудиофайл на основе текста с помощью Google TTS или espeak.
+func Generate(text string) (string, error) {
 	// Определяем путь для сохранения аудиофайла
 	audioPath := filepath.Join("/tmp", fmt.Sprintf("audio_%d.mp3", time.Now().Unix()))
 

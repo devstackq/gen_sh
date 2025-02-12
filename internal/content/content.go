@@ -73,6 +73,7 @@ func (rf *RedditFetcher) Fetch(theme string) ([]Content, error) {
 		}
 		items = append(items, item)
 	}
+	
 	fmt.Printf("Found %d reddit items.\n", len(items))
 
 	return items, nil

@@ -3,13 +3,13 @@ package stock
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
 
 const (
-	apiKey     = "YOUR_PEXELS_API_KEY" // Замените на ваш API ключ
+	apiKey     = "gy6rvlJuA7nqZNXaSHAPHvp2Z6LA6YTrLZeso64zyqN1x9F082M15IRw" //todo move to config.yaml
 	apiBaseURL = "https://api.pexels.com/v1"
 )
 
@@ -38,7 +38,7 @@ func (p *pexels) SearchMedia(query string, mediaType string, perPage int) ([]Med
 		return nil, fmt.Errorf("не удалось выполнить запрос: статус %s", resp.Status)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (p *pexels) SearchMedia(query string, mediaType string, perPage int) ([]Med
 				} `json:"video_files"`
 			} `json:"videos"`
 		}
-		if err := json.Unmarshal(body, &result); err != nil {
+		if err = json.Unmarshal(body, &result); err != nil {
 			return nil, err
 		}
 		for _, video := range result.Videos {
@@ -75,7 +75,7 @@ func (p *pexels) SearchMedia(query string, mediaType string, perPage int) ([]Med
 				} `json:"src"`
 			} `json:"photos"`
 		}
-		if err := json.Unmarshal(body, &result); err != nil {
+		if err = json.Unmarshal(body, &result); err != nil {
 			return nil, err
 		}
 		for _, photo := range result.Photos {
@@ -87,6 +87,8 @@ func (p *pexels) SearchMedia(query string, mediaType string, perPage int) ([]Med
 			})
 		}
 	}
+
+	fmt.Println(mediaItems, "media")
 
 	return mediaItems, nil
 }

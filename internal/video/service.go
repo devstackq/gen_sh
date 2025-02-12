@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/devstackq/gen_sh/internal/audio"
 	"github.com/devstackq/gen_sh/internal/config"
 	"github.com/devstackq/gen_sh/internal/content"
 	"github.com/devstackq/gen_sh/internal/logger"
@@ -68,7 +69,7 @@ func GenerateVideo(user config.User, content []content.Content) (string, error) 
 	var (
 		mediaType = "video" // photo/video - getFromConfig?
 		perPage   = 1       // getFromConfig?
-		text      = content[0].Excerpt
+		text      = content[0].Text
 	)
 
 	stock := stock.New("pexels")
@@ -89,7 +90,18 @@ func GenerateVideo(user config.User, content []content.Content) (string, error) 
 	}
 	defer os.Remove(videoPath)
 
-	audioPath, err := speech.GenerateAudio(text)
+	fSound := audio.NewFreeSoundClient("RkLwhyiwA2BTJ1kQKYRioMqXvQkUHkge4i0Z9RPc") //move to config
+
+	sound, err := fSound.Search(user.Theme, 1)
+	if err != nil {
+		return "", err
+	}
+	if len(sound) == 0 {
+		return "", fmt.Errorf("не найдено подходящих аудио")
+	}
+	fmt.Println(sound[0].URL, "sound")
+
+	audioPath, err := speech.Generate(text)
 	if err != nil {
 		return "", err
 	}
