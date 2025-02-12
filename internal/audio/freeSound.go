@@ -20,19 +20,19 @@ type AudioResult struct {
 	URL  string `json:"previews"`
 }
 
-type SoundResult struct {
-	ID          int               `json:"id"`
-	Name        string            `json:"name"`
-	URL         string            `json:"url"`
-	License     string            `json:"license"`
-	Previews    map[string]string `json:"previews"`
-	Duration    float64           `json:"duration"`
-	DownloadURL string            `json:"download"`
-	Score       float64           `json:"score,omitempty"`
+type SearchResponse struct {
+	Count    int     `json:"count"`
+	Previous *string `json:"previous"` // Nullable, use *string for null values
+	Next     *string `json:"next"`     // Nullable, use *string for null values
+	Results  []Sound `json:"results"`
 }
 
-type SoundListResponse struct {
-	Results []SoundResult `json:"results"`
+type Sound struct {
+	ID       int      `json:"id"`
+	Name     string   `json:"name"`
+	Tags     []string `json:"tags"`
+	License  string   `json:"license"`
+	Username string   `json:"username"`
 }
 
 func NewFreeSoundClient(apiKey string) *FreeSoundClient {
@@ -52,21 +52,48 @@ func (f *FreeSoundClient) Search(query string, limit int) ([]AudioResult, error)
 		return nil, fmt.Errorf("ошибка чтения ответа Freesound: %v", err)
 	}
 
-	var result SoundListResponse
+	var result SearchResponse
+
 	if err = json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("ошибка парсинга JSON Freesound: %v", err)
 	}
 
 	audioResults := make([]AudioResult, 0, len(result.Results))
 	for _, r := range result.Results {
-		if previewURL, ok := r.Previews["preview-hq-mp3"]; ok {
-			audioResults = append(audioResults, AudioResult{
-				ID:   r.ID,
-				Name: r.Name,
-				URL:  previewURL,
-			})
-		}
+		audioResults = append(audioResults, AudioResult{
+			ID:   r.ID,
+			Name: r.Name,
+		})
 	}
+
+	if len(audioResults) == 0 {
+		return nil, fmt.Errorf("sounds result is empty")
+	}
+
+	//DRY ? or move func?
+	soundURL := fmt.Sprintf("https://freesound.org/apiv2/sounds/%d/", audioResults[0].ID)
+
+	req, err := http.NewRequest(http.MethodGet, soundURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка создания запроса: %v", err)
+	}
+	req.Header.Set("Authorization", "Token "+f.ApiKey)
+
+	client := &http.Client{}
+	soundResp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %v", err)
+	}
+	defer soundResp.Body.Close()
+
+	defer soundResp.Body.Close()
+
+	soundBody, err := io.ReadAll(soundResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения ответа Freesound: %v", err)
+	}
+
+	fmt.Println(string(soundBody), "1 sound")
 
 	return audioResults, nil
 }
