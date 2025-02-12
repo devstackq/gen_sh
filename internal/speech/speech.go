@@ -16,12 +16,10 @@ func GenerateAudio(text string) (string, error) {
 	audioPath := filepath.Join("/tmp", fmt.Sprintf("audio_%d.mp3", time.Now().Unix()))
 
 	// Попробуем использовать Google TTS (если установлен gtts-cli)
-	err := generateWithGoogleTTS(text, audioPath)
-	if err != nil {
+	if err := generateWithGoogleTTS(text, audioPath); err != nil {
 		logger.LogError(fmt.Sprint("Google TTS недоступен, переключаемся на espeak", err))
 		// Если Google TTS недоступен, используем espeak
-		err = generateWithEspeak(text, audioPath)
-		if err != nil {
+		if err = generateWithEspeak(text, audioPath); err != nil {
 			logger.LogError(fmt.Sprint("Ошибка генерации аудио с espeak", err))
 			return "", err
 		}
@@ -43,7 +41,6 @@ func generateWithGoogleTTS(text, audioPath string) error {
 	return nil
 }
 
-// generateWithEspeak - генерация аудио с помощью espeak (системного TTS)
 func generateWithEspeak(text, audioPath string) error {
 	tempWav := audioPath + ".wav"
 

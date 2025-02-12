@@ -2,8 +2,11 @@ package video
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 	"github.com/devstackq/gen_sh/internal/content"
 	"github.com/devstackq/gen_sh/internal/logger"
 	"github.com/devstackq/gen_sh/internal/speech"
+	"github.com/devstackq/gen_sh/internal/stock"
 	"github.com/devstackq/gen_sh/internal/uploader"
 	"github.com/pkg/errors"
 )
@@ -19,22 +23,9 @@ type Video struct {
 	uploader uploader.PlatformClient
 }
 
-func Publish(user config.User, content []content.Content) error {
+func Publish(user config.User, item content.Content) error {
 
 	logger.LogInfo(fmt.Sprint("Начата обработка пользователя", "email", user.Email, "theme", user.Theme))
-	// Генерация аудио
-	audioPath, err := GenerateAudioForText(content[0].Excerpt) //todo mb use 1 content?
-	if err != nil {
-		return err
-	}
-
-	// Генерация видео
-	videoPath, err := GenerateVideo(content[0].Excerpt, audioPath)
-	if err != nil {
-		return err
-	}
-
-	//title, description, tags := GenerateMetadata(user.Theme)
 
 	// Инициализация клиентов для всех платформ пользователя
 	clients := make(map[string]uploader.PlatformClient)
@@ -59,7 +50,7 @@ func Publish(user config.User, content []content.Content) error {
 				return
 			}
 
-			if err = client.Upload(videoPath, content[0].Title, content[0].Excerpt, []string{"tags"}); err != nil {
+			if err := client.Upload(item.Path, item.Title, item.Description, item.Tags); err != nil { //todo gen - tags
 				logger.LogError(fmt.Sprintf("Ошибка публикации на платформе %s: %v", platform.Name, err))
 			}
 		}(platform)
@@ -67,36 +58,90 @@ func Publish(user config.User, content []content.Content) error {
 
 	wg.Wait()
 
-	logger.LogInfo(fmt.Sprint("Видео успешно обработано", "email", user.Email, "path", videoPath))
+	logger.LogInfo(fmt.Sprint("Видео успешно обработано", "email", user.Email, "path", item.Path))
 
 	return nil
 }
 
-// GenerateVideo - основная логика генерации видео
-func GenerateVideo(text, audioPath string) (string, error) {
-	logger.LogInfo(fmt.Sprint("Генерация видео", "text", text))
+func GenerateVideo(user config.User, content []content.Content) (string, error) {
 
-	textVideoPath, err := generateTextVideo(text)
+	var (
+		mediaType = "video" // photo/video - getFromConfig?
+		perPage   = 1       // getFromConfig?
+		text      = content[0].Excerpt
+	)
+
+	stock := stock.New("pexels")
+
+	medias, err := stock.SearchMedia(user.Theme, mediaType, perPage)
 	if err != nil {
-		return "", errors.Wrap(err, "ошибка генерации текста в видео")
+		return "", fmt.Errorf("ошибка поиска медиафайлов %v", err)
 	}
 
-	videoPath, err := combineAudioWithVideo(textVideoPath, audioPath)
+	if len(medias) == 0 {
+		return "", fmt.Errorf("не найдено подходящих медиафайлов")
+	}
+
+	videoURL := medias[0].Source
+	videoPath, err := downloadVideo(videoURL)
+	if err != nil {
+		return "", errors.Wrap(err, "ошибка загрузки видео")
+	}
+	defer os.Remove(videoPath)
+
+	audioPath, err := speech.GenerateAudio(text)
+	if err != nil {
+		return "", err
+	}
+
+	//title, description, tags := GenerateMetadata(user.Theme)
+	logger.LogInfo(fmt.Sprint("Генерация видео", "text", text))
+
+	finalVideoPath, err := combineAudioWithVideo(videoPath, audioPath, "path/to/watermark.png") //todo set logo image
 	if err != nil {
 		return "", errors.Wrap(err, "ошибка наложения аудио")
 	}
 
-	if err = removeFile(textVideoPath); err != nil {
-		logger.LogError(fmt.Sprint("Не удалось удалить временное видео", "file", textVideoPath))
+	if err = removeFile(videoPath); err != nil {
+		logger.LogError(fmt.Sprint("Не удалось удалить временное видео", "file", videoPath))
 	}
 
-	return videoPath, nil
+	return finalVideoPath, nil
+}
+
+func downloadVideo(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("ошибка при выполнении запроса: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("не удалось загрузить видео, статус: %s", resp.Status)
+	}
+
+	tempDir := os.TempDir()
+	fileName := fmt.Sprintf("%d_video.mp4", time.Now().Unix())
+	filePath := filepath.Join(tempDir, fileName)
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("ошибка создания файла: %v", err)
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("ошибка сохранения видео: %v", err)
+	}
+
+	return filePath, nil
 }
 
 func generateTextVideo(text string) (string, error) {
 	videoPath := fmt.Sprintf("/tmp/%d_text_video.mp4", time.Now().Unix())
 
-	cmd := exec.Command("ffmpeg", "-f", "lavfi", "-t", "5", "-i", "color=c=black:s=1280x720:r=30",
+	cmd := exec.Command("ffmpeg", "-f", "lavfi", "-t", "30", "-i", "color=c=black:s=1280x720:r=30",
 		"-vf", fmt.Sprintf("drawtext=text='%s':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2", text),
 		"-an", videoPath)
 
@@ -108,23 +153,16 @@ func generateTextVideo(text string) (string, error) {
 	return videoPath, nil
 }
 
-func GenerateAudioForText(text string) (string, error) {
-	audioPath, err := speech.GenerateAudio(text)
-	if err != nil {
-		return "", err
-	}
-	return audioPath, nil
-}
-
-func combineAudioWithVideo(videoPath, audioPath string) (string, error) {
+func combineAudioWithVideo(videoPath, audioPath, watermarkPath string) (string, error) {
 	finalVideoPath := fmt.Sprintf("/tmp/%d_final_video.mp4", time.Now().Unix())
 
-	cmd := exec.Command("ffmpeg", "-i", videoPath, "-i", audioPath, "-c:v", "libx264", "-c:a", "aac",
-		"-strict", "experimental", "-shortest", finalVideoPath)
+	cmd := exec.Command("ffmpeg", "-i", videoPath, "-i", audioPath, "-i", watermarkPath,
+		"-filter_complex", "[0:v][2:v]overlay=W-w-10:H-h-10:format=auto[v]", "-map", "[v]", "-map", "1:a",
+		"-c:v", "libx264", "-c:a", "aac", "-strict", "experimental", "-shortest", finalVideoPath)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("ошибка объединения видео и аудио: %v, output: %s", err, string(output))
+		return "", fmt.Errorf("ошибка объединения видео, аудио и водяного знака: %v, output: %s", err, string(output))
 	}
 
 	return finalVideoPath, nil

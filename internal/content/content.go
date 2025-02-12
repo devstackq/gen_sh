@@ -11,12 +11,15 @@ import (
 )
 
 type Content struct {
-	Source  string // Например, "Reddit", "Wikipedia", "Twitter"
-	Title   string
-	URL     string
-	Excerpt string   // Краткий отрывок или выдержка
-	Text    string   // Полное описание или текст статьи/поста
-	Tags    []string // Теги, сгенерированные на основе заголовка или анализа текста
+	Source      string // Например, "Reddit", "Wikipedia", "Twitter"
+	Title       string
+	Description string //for upload
+	URL         string
+	Excerpt     string   // Краткий отрывок или выдержка
+	Text        string   // Полное описание или текст статьи/поста
+	Tags        []string // Теги, сгенерированные на основе заголовка или анализа текста
+
+	Path string
 }
 
 type Fetcher interface {

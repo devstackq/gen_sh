@@ -32,11 +32,19 @@ func StartCronJob(cfg *config.Config) {
 					log.Fatalf("Ошибка получения контента: %v", err)
 				}
 				if len(items) == 0 {
-					log.Printf("content items equal 0")
+					log.Printf("content is empty")
 				}
-				if err = video.Publish(user, items); err != nil {
-					log.Printf("Ошибка при генерации и публикации видео для пользователя %s: %v", user.Email, err)
+
+				videoPath, err := video.GenerateVideo(user, items)
+				if err != nil {
+					log.Printf("GenerateVideo %s: %v", user.Email, err)
 				}
+				items[0].Path = videoPath
+
+				if err = video.Publish(user, items[0]); err != nil {
+					log.Printf("Publish %s: %v", user.Email, err)
+				}
+
 			}(user)
 		}
 

@@ -19,32 +19,32 @@ type ytService struct {
 }
 
 // NewYtClient создает новый объект загрузчика YouTube
-func NewYtClient(ytConfig config.Platform) (ytService, error) {
+func NewYtClient(ytConfig config.Platform) (*ytService, error) {
 	logger.LogInfo("Инициализация YouTube uploader...")
 	ctx := context.Background()
 
 	data, err := os.ReadFile(ytConfig.Credentials)
 	if err != nil {
-		return ytService{}, fmt.Errorf("ошибка при чтении credentials: %v", err)
+		return nil, fmt.Errorf("ошибка при чтении credentials: %v", err)
 	}
 
 	conf, err := google.ConfigFromJSON(data, youtube.YoutubeUploadScope)
 	if err != nil {
-		return ytService{}, fmt.Errorf("ошибка при получении конфигурации OAuth2: %v", err)
+		return nil, fmt.Errorf("ошибка при получении конфигурации OAuth2: %v", err)
 	}
 
 	// Получаем OAuth клиент
 	client, err := getClient(ctx, conf)
 	if err != nil {
-		return ytService{}, err
+		return nil, err
 	}
 	// Создаем клиент YouTube API
 	youtubeService, err := youtube.New(client)
 	if err != nil {
-		return ytService{}, fmt.Errorf("ошибка при инициализации YouTube API: %v", err)
+		return nil, fmt.Errorf("ошибка при инициализации YouTube API: %v", err)
 	}
 
-	return ytService{client: youtubeService}, nil
+	return &ytService{client: youtubeService}, nil
 }
 
 // getClient — функция для аутентификации с OAuth2
