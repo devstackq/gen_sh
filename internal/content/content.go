@@ -3,6 +3,7 @@ package content
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -26,15 +27,11 @@ type Fetcher interface {
 	Fetch(theme string) ([]Content, error)
 }
 
-// ------------------ Реализация для Reddit ------------------
-
-// RedditFetcher реализует ContentFetcher для Reddit.
 type RedditFetcher struct{}
 
 func (rf *RedditFetcher) Fetch(theme string) ([]Content, error) {
 	subreddit := url.QueryEscape(strings.ToLower(theme))
 	apiURL := fmt.Sprintf("https://www.reddit.com/r/%s/top/.json?limit=5&t=day", subreddit)
-
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
@@ -47,7 +44,7 @@ func (rf *RedditFetcher) Fetch(theme string) ([]Content, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +73,8 @@ func (rf *RedditFetcher) Fetch(theme string) ([]Content, error) {
 		}
 		items = append(items, item)
 	}
+	fmt.Printf("Found %d reddit items.\n", len(items))
+
 	return items, nil
 }
 
@@ -94,9 +93,6 @@ type RedditResponse struct {
 	} `json:"data"`
 }
 
-// ------------------ Реализация для Wikipedia ------------------
-
-// WikipediaFetcher реализует ContentFetcher для Wikipedia.
 type WikipediaFetcher struct{}
 
 func (wf *WikipediaFetcher) Fetch(theme string) ([]Content, error) {
@@ -147,9 +143,6 @@ type WikipediaResponse struct {
 	} `json:"content_urls"`
 }
 
-// ------------------ Реализация для Twitter ------------------
-
-// TwitterFetcher – заглушка для Twitter.
 type TwitterFetcher struct{}
 
 func (tf *TwitterFetcher) Fetch(theme string) ([]Content, error) {
@@ -165,7 +158,6 @@ func (tf *TwitterFetcher) Fetch(theme string) ([]Content, error) {
 	return []Content{item}, nil
 }
 
-// generateTags – простая функция для генерации тегов из заголовка.
 func generateTags(title string) []string {
 	words := strings.Fields(title)
 	var tags []string

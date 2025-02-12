@@ -20,7 +20,7 @@ func main() {
 		log.Fatalf("Ошибка загрузки конфигурации: %v", err)
 	}
 
-	go cron.StartCronJob(cfg)
+	go cron.Start(cfg)
 
 	// Ожидаем завершения всех cron задач
 	select {}
