@@ -10,3 +10,7 @@ ERROR: 2025/02/13 02:03:08 logger.go:43: Google TTS недоступен, пер
 ERROR: 2025/02/13 02:03:08 logger.go:43: Ошибка генерации аудио с espeakошибка при использовании espeak: exec: "espeak": executable file not found in $PATH, output: 
 ERROR: 2025/02/13 02:03:44 logger.go:43: Google TTS недоступен, переключаемся на espeakошибка при использовании Google TTS: exec: "gtts-cli": executable file not found in $PATH, output: 
 ERROR: 2025/02/13 02:03:44 logger.go:43: Ошибка генерации аудио с espeakошибка при использовании espeak: exec: "espeak": executable file not found in $PATH, output: 
+ERROR: 2025/02/13 12:43:07 logger.go:43: Google TTS недоступен, переключаемся на espeakошибка при использовании Google TTS: exec: "gtts-cli": executable file not found in $PATH, output: 
+ERROR: 2025/02/13 12:43:07 logger.go:43: Ошибка генерации аудио с espeakошибка при использовании espeak: exec: "espeak": executable file not found in $PATH, output: 
+ERROR: 2025/02/13 12:59:42 logger.go:43: Google TTS недоступен, переключаемся на espeakошибка при использовании Google TTS: exec: "gtts-cli": executable file not found in $PATH, output: 
+ERROR: 2025/02/13 12:59:42 logger.go:43: Ошибка генерации аудио с espeakошибка при использовании espeak: exec: "espeak": executable file not found in $PATH, output: 

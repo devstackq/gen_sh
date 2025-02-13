@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -17,7 +18,7 @@ type FreeSoundClient struct {
 type AudioResult struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
-	URL  string `json:"previews"`
+	URL  string `json:"url"`
 }
 
 type SearchResponse struct {
@@ -39,34 +40,35 @@ func NewFreeSoundClient(apiKey string) *FreeSoundClient {
 	return &FreeSoundClient{ApiKey: apiKey}
 }
 
-func (f *FreeSoundClient) Search(query string, limit int, duration float64) ([]AudioResult, error) {
+func (f *FreeSoundClient) Search(query string, limit int, duration float64) (AudioResult, error) {
+	var result AudioResult
 
-	url := fmt.Sprint(baseURL + "/apiv2/search/text/")
-	
-	queryURL := fmt.Sprintf(
-		"%s?q=%s&filter=duration:[%.1f TO %.1f]&token=%s&page_size=%d",
-		url, query, duration-5, duration+5, f.ApiKey, limit,
-	)
+	filter := url.QueryEscape("duration:[8.6 TO 18.6]")
+	searchURL := fmt.Sprintf("%s?q=%s&filter=%s&token=%s&page_size=%d",
+		fmt.Sprint(baseURL+"/apiv2/search/text/"), url.QueryEscape(query), filter, f.ApiKey, limit)
 
-	resp, err := http.Get(queryURL)
+	searchResp, err := http.Get(searchURL)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка запроса к API Freesound: %v", err)
+		return result, fmt.Errorf("ошибка запроса к API Freesound: %v", err)
 	}
-	defer resp.Body.Close()
+	defer searchResp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	searchBody, err := io.ReadAll(searchResp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа Freesound: %v", err)
+		return result, fmt.Errorf("ошибка чтения ответа Freesound: %v", err)
 	}
 
-	var result SearchResponse
-
-	if err = json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("ошибка парсинга JSON Freesound: %v", err)
+	if searchResp.StatusCode != http.StatusOK {
+		return result, fmt.Errorf("statusCode is not OK")
 	}
 
-	audioResults := make([]AudioResult, 0, len(result.Results))
-	for _, r := range result.Results {
+	var searchResult SearchResponse
+	if err = json.Unmarshal(searchBody, &searchResult); err != nil {
+		return result, fmt.Errorf("ошибка парсинга JSON Freesound: %v", err)
+	}
+
+	audioResults := make([]AudioResult, 0, len(searchResult.Results))
+	for _, r := range searchResult.Results {
 		audioResults = append(audioResults, AudioResult{
 			ID:   r.ID,
 			Name: r.Name,
@@ -74,7 +76,7 @@ func (f *FreeSoundClient) Search(query string, limit int, duration float64) ([]A
 	}
 
 	if len(audioResults) == 0 {
-		return nil, fmt.Errorf("sounds result is empty")
+		return result, fmt.Errorf("sounds result is empty")
 	}
 
 	//DRY ? or move func?
@@ -82,25 +84,28 @@ func (f *FreeSoundClient) Search(query string, limit int, duration float64) ([]A
 
 	req, err := http.NewRequest(http.MethodGet, soundURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка создания запроса: %v", err)
+		return result, fmt.Errorf("ошибка создания запроса: %v", err)
 	}
 	req.Header.Set("Authorization", "Token "+f.ApiKey)
 
 	client := &http.Client{}
 	soundResp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка выполнения запроса: %v", err)
+		return result, fmt.Errorf("ошибка выполнения запроса: %v", err)
 	}
 	defer soundResp.Body.Close()
 
 	soundBody, err := io.ReadAll(soundResp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения ответа Freesound: %v", err)
+		return result, fmt.Errorf("ошибка чтения ответа Freesound: %v", err)
 	}
 
-	fmt.Println(string(soundBody), "1 sound")
+	if err = json.Unmarshal(soundBody, &result); err != nil {
+		return result, fmt.Errorf("ошибка парсинга JSON Freesound: %v", err)
+	}
+	fmt.Println(result, "1 sound")
 
-	return audioResults, nil
+	return result, nil
 }
 
 func DownloadAudio(url, filepath string) error {
