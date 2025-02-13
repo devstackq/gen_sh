@@ -25,6 +25,7 @@ func Start(cfg *config.Config) {
 
 		wg.Add(1)
 		go func(user config.User) {
+
 			defer wg.Done()
 			items, err := content.FetchContent(user.Theme, user.Sources)
 			if err != nil {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -72,9 +73,12 @@ func GenerateVideo(user config.User, content []content.Content) (string, error) 
 		text      = content[0].Text
 	)
 
+	speechRate := 2.5 // Средняя скорость речи (слов/сек)
+	duration := estimateDuration(text, speechRate)
+
 	stock := stock.New("pexels")
 
-	medias, err := stock.SearchMedia(user.Theme, mediaType, perPage)
+	medias, err := stock.SearchMedia(user, mediaType, perPage, duration)
 	if err != nil {
 		return "", fmt.Errorf("ошибка поиска медиафайлов %v", err)
 	}
@@ -90,9 +94,9 @@ func GenerateVideo(user config.User, content []content.Content) (string, error) 
 	}
 	defer os.Remove(videoPath)
 
-	fSound := audio.NewFreeSoundClient("RkLwhyiwA2BTJ1kQKYRioMqXvQkUHkge4i0Z9RPc") //move to config
+	fSound := audio.NewFreeSoundClient(user.Sound.ApiKey) //move to config
 
-	sound, err := fSound.Search(user.Theme, 1)
+	sound, err := fSound.Search(user.Theme, 1, duration)
 	if err != nil {
 		return "", err
 	}
@@ -119,6 +123,12 @@ func GenerateVideo(user config.User, content []content.Content) (string, error) 
 	}
 
 	return finalVideoPath, nil
+}
+
+func estimateDuration(text string, speechRate float64) float64 {
+	words := len(strings.Fields(text)) // Подсчет слов
+	duration := float64(words) / speechRate
+	return duration // В секундах
 }
 
 func downloadVideo(url string) (string, error) {

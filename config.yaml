@@ -14,6 +14,13 @@ users:
         credentials: "tiktok_credentials.json"
         api_key: "tiktok_api_key"
         upload_path: "/videos/tiktok/"
+    sound:
+      name: "freeSound"
+      api_key: "RkLwhyiwA2BTJ1kQKYRioMqXvQkUHkge4i0Z9RPc"
+    stock:
+      name: "pexels"
+      api_key: "gy6rvlJuA7nqZNXaSHAPHvp2Z6LA6YTrLZeso64zyqN1x9F082M15IRw"
+
 #  - email: user2@mail.com
 #    theme: "meme"
 #    sources:

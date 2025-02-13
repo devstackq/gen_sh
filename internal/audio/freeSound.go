@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const freesoundAPI = "https://freesound.org/apiv2/search/text/"
+const baseURL = "https://freesound.org"
 
 type FreeSoundClient struct {
 	ApiKey string
@@ -39,9 +39,16 @@ func NewFreeSoundClient(apiKey string) *FreeSoundClient {
 	return &FreeSoundClient{ApiKey: apiKey}
 }
 
-func (f *FreeSoundClient) Search(query string, limit int) ([]AudioResult, error) {
-	url := fmt.Sprintf("%s?q=%s&token=%s&page_size=%d", freesoundAPI, query, f.ApiKey, limit)
-	resp, err := http.Get(url)
+func (f *FreeSoundClient) Search(query string, limit int, duration float64) ([]AudioResult, error) {
+
+	url := fmt.Sprint(baseURL + "/apiv2/search/text/")
+	
+	queryURL := fmt.Sprintf(
+		"%s?q=%s&filter=duration:[%.1f TO %.1f]&token=%s&page_size=%d",
+		url, query, duration-5, duration+5, f.ApiKey, limit,
+	)
+
+	resp, err := http.Get(queryURL)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка запроса к API Freesound: %v", err)
 	}
@@ -84,8 +91,6 @@ func (f *FreeSoundClient) Search(query string, limit int) ([]AudioResult, error)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка выполнения запроса: %v", err)
 	}
-	defer soundResp.Body.Close()
-
 	defer soundResp.Body.Close()
 
 	soundBody, err := io.ReadAll(soundResp.Body)

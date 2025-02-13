@@ -6,26 +6,32 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/devstackq/gen_sh/internal/config"
 )
 
 const (
-	apiKey     = "gy6rvlJuA7nqZNXaSHAPHvp2Z6LA6YTrLZeso64zyqN1x9F082M15IRw" //todo move to config.yaml
 	apiBaseURL = "https://api.pexels.com/v1"
 )
 
 type pexels struct{}
 
-func (p *pexels) SearchMedia(query string, mediaType string, perPage int) ([]MediaItem, error) {
-	searchURL := fmt.Sprintf("%s/search?query=%s&per_page=%d", apiBaseURL, url.QueryEscape(query), perPage)
+func (p *pexels) SearchMedia(user config.User, mediaType string, perPage int, duration float64) ([]MediaItem, error) {
+
+	searchURL := fmt.Sprintf("%s/search?query=%s&per_page=%d", apiBaseURL, url.QueryEscape(user.Theme), perPage)
+
 	if mediaType == "video" {
-		searchURL = fmt.Sprintf("%s/videos/search?query=%s&per_page=%d", apiBaseURL, url.QueryEscape(query), perPage)
+		searchURL = fmt.Sprintf(
+			"%s/videos/search?query=%s&per_page=%d&min_duration=%f&max_duration=%f",
+			apiBaseURL, url.QueryEscape(user.Theme), perPage, duration-5, duration+5,
+		)
 	}
 
-	req, err := http.NewRequest("GET", searchURL, nil)
+	req, err := http.NewRequest(http.MethodGet, searchURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", apiKey)
+	req.Header.Set("Authorization", user.Stock.ApiKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

@@ -19,6 +19,17 @@ type User struct {
 	Theme     string     `yaml:"theme"`
 	Sources   []string   `yaml:"sources"`
 	Platforms []Platform `yaml:"platforms"`
+	Sound     `yaml:"sound"`
+	Stock     `yaml:"stock"`
+}
+
+type Sound struct {
+	Name   string `yaml:"name"`
+	ApiKey string `yaml:"api_key"`
+}
+type Stock struct {
+	Name   string `yaml:"name"`
+	ApiKey string `yaml:"api_key"`
 }
 
 type Config struct {

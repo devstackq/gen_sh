@@ -2,3 +2,5 @@
 config.yaml
 .idea
 todo.txt
+./config.yaml
+*yaml
